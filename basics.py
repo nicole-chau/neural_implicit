@@ -1,7 +1,5 @@
 ## copy from https://github.com/Oktosha/DeepSDF-explained/blob/master/deepSDF-explained.ipynb
-## 
-
-## 
+ 
 import os
 import numpy as np
 # import matplotlib.pyplot as plt ## gpufarm does not support interactive visualization
@@ -13,8 +11,6 @@ import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 from torch import optim
 
-
-##
 class Geometry:
     EPS = 1e-12
     def distance_from_segment_to_point(a, b, p):
@@ -66,7 +62,7 @@ class Polygon(Shape):
         return ans
 
 
-
+# default for is_net is false
 def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
     # See https://stackoverflow.com/questions/33282368/plotting-a-2d-heatmap-with-matplotlib
     
@@ -84,7 +80,6 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
                 for x_ in COORDINATES_LINSPACE]
         
     z = np.float_(z)
-        
     z = z[:-1, :-1]
     z_min, z_max = -np.abs(z).max(), np.abs(z).max()
     
@@ -95,24 +90,49 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
     if filename is None:
         filename = "tmp_res.png"
     cv2.imwrite(filename, z)
-    
-
 
 class Net(nn.Module):
 
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(2, 50)
-        self.fc2 = nn.Linear(50, 1)
+
+        self.fc1 = nn.utils.weight_norm(nn.Linear(2, 512))
+        self.fc2 = nn.utils.weight_norm(nn.Linear(512, 512))
+        self.fc3 = nn.utils.weight_norm(nn.Linear(512, 512))
+        self.fc4 = nn.utils.weight_norm(nn.Linear(512, 512))
+        self.fc5 = nn.utils.weight_norm(nn.Linear(512, 512))
+        self.fc6 = nn.utils.weight_norm(nn.Linear(512, 512))
+        self.fc7 = nn.utils.weight_norm(nn.Linear(512, 512))
+        self.fc8 = nn.utils.weight_norm(nn.Linear(512, 1))
+        
+        # dropout with probability 0.2
+        self.dropout = nn.Dropout(p=0.2)
 
     def forward(self, x):
         # x = torch.Tensor(x)
         x = F.relu(self.fc1(x))
-        x = torch.tanh(self.fc2(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc2(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc3(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc4(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc5(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc6(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc7(x))
+        x = self.dropout(x)
+
+        x = torch.tanh(self.fc8(x))
         return x
-
-
-
 
 if __name__ == "__main__":
 
@@ -154,9 +174,12 @@ if __name__ == "__main__":
     device = torch.device("cuda" if use_cuda else "cpu")    
     print("device: ", device)
     net = net.to(device)
-    ## this is to set an pytorch optimizer
-    opt = optim.SGD(net.parameters(), lr=0.05)
 
+    ## this is to set an pytorch optimizer
+    # opt = optim.SGD(net.parameters(), lr=1e-5)
+
+    # use Adam optimizer
+    opt = optim.Adam(net.parameters(), lr=1e-5)
 
 
     ## main training process
