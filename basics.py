@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 from torch import optim
+import argparse
 
 class Geometry:
     EPS = 1e-12
@@ -38,7 +39,6 @@ class Circle(Shape):
     
     
 class Polygon(Shape):
-    
     def __init__(self, v):
         self.v = v
     
@@ -91,6 +91,7 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
         filename = "tmp_res.png"
     cv2.imwrite(filename, z)
 
+
 class Net(nn.Module):
 
     def __init__(self):
@@ -136,6 +137,9 @@ class Net(nn.Module):
 
 if __name__ == "__main__":
 
+    # parser = argparse.ArgumentParser(description='DeepSDF 2D Neural Implicit')
+    # parser.add_argument('--shape', help='input shape type: circle, square, rectangle')
+
     ## make a folder for storing the output images
     res_dir = 'res_dir'
     if not os.path.exists(res_dir):
@@ -156,17 +160,31 @@ if __name__ == "__main__":
     # plt.scatter(points_train[:,0], points_train[:,1], color=(1, 1, 1, 0), edgecolor="#000000")
 
 
+    # define rectangle
+    # rectangle = Polygon(np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]]))
+    # points_train = np.float_([[x_, y_]
+    #                 for y_ in np.linspace(-3, 3, 40)
+    #                 for x_ in np.linspace(-3, 3, 40)])
+    # sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
+    # plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
+
+    # define triangle
+    # triangle = Polygon(np.float_([[0, -1], [0, 1], [1, 0]]))
+    # points_train = np.float_([[x_, y_]
+    #                 for y_ in np.linspace(-3, 3, 40)
+    #                 for x_ in np.linspace(-3, 3, 40)])
+    # sdf_train = np.float_(list(map(triangle.sdf, points_train)))
+    # plot_sdf_using_opencv(triangle.sdf, device=None, filename='triangle.png')
+    
 
     ## now we make the dataset and dataloader for training
     train_ds = TensorDataset(torch.Tensor(points_train), torch.Tensor(sdf_train))
     train_dl = DataLoader(train_ds, shuffle=True, batch_size=len(train_ds))
 
 
-
     ## use cuda or not?
     use_cuda = torch.cuda.is_available()
     print("do you have cuda?", use_cuda)
-
 
 
     ## this is to instantiate a network defined
@@ -181,6 +199,7 @@ if __name__ == "__main__":
     # use Adam optimizer
     opt = optim.Adam(net.parameters(), lr=1e-5)
 
+    clamp_dist = 0.1
 
     ## main training process
     epochs = 1000
@@ -195,10 +214,10 @@ if __name__ == "__main__":
             pred = net(points_b)
             # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
             pred = pred.squeeze()
-            # compute loss for this batch
-            """
-            attention: this loss is different from eq.9 in DeepSDF
-            """
+            
+            # compute loss for this batch with clamp
+            pred = torch.clamp(pred, -clamp_dist, clamp_dist)
+            sdfs_b = torch.clamp(sdfs_b, -clamp_dist, clamp_dist)
             loss = F.l1_loss(pred, sdfs_b)
             # aggregate losses in an epoch to check the loss for the entire shape
             total_loss += loss
@@ -208,8 +227,41 @@ if __name__ == "__main__":
             # make sure you empty the grad (set them to zero) after each optimizer step.
             opt.zero_grad()
         
-        print("Epoch:", epoch, "Loss:", total_loss.item())
+        # print("Epoch:", epoch, "Loss:", total_loss.item())
         
         if (epoch % 100 == 0):
             filename = os.path.join(res_dir, "res_"+str(epoch)+".png")
             plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
+
+        test_total_loss = 0
+        # set to evaluation mode
+        net.eval()
+        with torch.no_grad():
+            for points_b, sdfs_b in train_dl:
+                # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)
+                if use_cuda:
+                    points_b = points_b.to(device)
+                    sdfs_b = sdfs_b.to(device)
+                pred = net(points_b)
+                # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
+                pred = pred.squeeze()
+
+                # loss function
+                pred = torch.clamp(pred, -clamp_dist, clamp_dist)
+                sdfs_b = torch.clamp(sdfs_b, -clamp_dist, clamp_dist)
+                test_loss = F.l1_loss(pred, sdfs_b)
+                test_total_loss += test_loss
+
+        if (epoch % 100 == 0):
+            filename = os.path.join(res_dir, "test_res_"+str(epoch)+".png")
+            plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
+
+        print("Epoch:", epoch, "Loss:", total_loss.item(), "Test Loss:", test_total_loss.item())
+                
+
+
+            
+
+
+        
+    
