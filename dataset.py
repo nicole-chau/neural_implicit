@@ -36,6 +36,8 @@ class CircleSample(torch.utils.data.Dataset):
         self.sdf = np.clip(self.sdf, -1.0, 1.0)
         
         ## if we need this one
+        print("self.samples: ", self.samples.ndim)
+        print("self.sdf: ", self.sdf)
         self.data = np.concatenate([self.samples, np.expand_dims(self.sdf, axis=0)], axis=0)
 
     def draw(self):
@@ -128,7 +130,7 @@ class PolygonSample(torch.utils.data.Dataset):
         
         ## if we need this one
         self.data = np.concatenate([self.samples, np.expand_dims(self.sdf, axis=0)], axis=0)
-    
+
 
     def draw(self):
         plot_sdf_using_opencv(self.shape.sdf, device=None, filename=self.filename)

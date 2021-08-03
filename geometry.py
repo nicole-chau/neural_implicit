@@ -6,11 +6,16 @@ import torch
 class Geometry:
     EPS = 1e-12
     def distance_from_segment_to_point(a, b, p):
-        ans = min(np.linalg.norm(a - p), np.linalg.norm(b - p))
-        if (np.linalg.norm(a - b) > Geometry.EPS 
-            and np.dot(p - a, b - a) > Geometry.EPS 
-            and np.dot(p - b, a - b) > Geometry.EPS):
-            ans = abs(np.cross(p - a, b - a) / np.linalg.norm(b - a))
+        a_expand = np.expand_dims(a, axis=-1) 
+        b_expand = np.expand_dims(b, axis=-1) 
+        ans = min(np.linalg.norm(a_expand - p), np.linalg.norm(b_expand - p))
+        
+        if (np.linalg.norm((a - b).all()) > Geometry.EPS 
+            and np.dot((p - a_expand).T, b - a) > Geometry.EPS 
+            and np.dot((p - b_expand).T, a - b) > Geometry.EPS):
+            pa = np.reshape((p - a), (2)) 
+            ba = np.reshape((b - a), (2)) 
+            ans = abs(np.cross(pa, ba) / np.linalg.norm(b - a))
         return ans
 
 
@@ -41,7 +46,16 @@ class Polygon(Shape):
         self.v = v
     
     def sdf(self, p):
-        return -self.distance(p) if self.point_is_inside(p) else self.distance(p)
+        if len(p.shape) == 2: ## 2d array
+            #print("sdf return: ", -self.distance(p) if self.point_is_inside(p.all()) else self.distance(p))
+            return -self.distance(p) if self.point_is_inside(p.all()) else self.distance(p)
+        elif len(p.shape) == 1: ## a point
+            #print("sdf return: ", -self.distance(p) if self.point_is_inside(p) else self.distance(p))
+            return -self.distance(p) if self.point_is_inside(p) else self.distance(p)
+        else:
+            raise NotImplementedError
+        
+        # return -self.distance(p) if self.point_is_inside(p) else self.distance(p)
     
     def point_is_inside(self, p):
         angle_sum = 0
