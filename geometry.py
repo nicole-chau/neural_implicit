@@ -6,17 +6,29 @@ import torch
 class Geometry:
     EPS = 1e-12
     def distance_from_segment_to_point(a, b, p):
-        a_expand = np.expand_dims(a, axis=-1) 
-        b_expand = np.expand_dims(b, axis=-1) 
-        ans = min(np.linalg.norm(a_expand - p), np.linalg.norm(b_expand - p))
-        
-        if (np.linalg.norm((a - b).all()) > Geometry.EPS 
-            and np.dot((p - a_expand).T, b - a) > Geometry.EPS 
-            and np.dot((p - b_expand).T, a - b) > Geometry.EPS):
-            pa = np.reshape((p - a), (2)) 
-            ba = np.reshape((b - a), (2)) 
-            ans = abs(np.cross(pa, ba) / np.linalg.norm(b - a))
-        return ans
+        if len(p.shape) == 2:
+            a_expand = np.expand_dims(a, axis=-1) 
+            b_expand = np.expand_dims(b, axis=-1)
+            ans = np.minimum(np.linalg.norm(a_expand - p, axis = 0), np.linalg.norm(b_expand - p, axis = 0))
+            
+            if (np.linalg.norm((a - b).all()) > Geometry.EPS 
+                and np.dot((p - a), b - a) > Geometry.EPS 
+                and np.dot((p - b), a - b) > Geometry.EPS):
+                pa = np.reshape((p - a), (2)) 
+                ba = np.reshape((b - a), (2)) 
+                ans = abs(np.cross(pa, ba) / np.linalg.norm(b - a, axis = 0))
+            return ans
+            
+        elif len(p.shape) == 1:
+            ans = min(np.linalg.norm(a - p), np.linalg.norm(b - p))
+
+            if (np.linalg.norm((a - b)) > Geometry.EPS 
+                and np.dot((p - a), b - a) > Geometry.EPS 
+                and np.dot((p - b), a - b) > Geometry.EPS):
+                ans = abs(np.cross(p - a, b - a) / np.linalg.norm(b - a))
+            return ans
+        else:
+            raise NotImplementedError
 
 
 ## parent class of other following shapes
@@ -47,16 +59,12 @@ class Polygon(Shape):
     
     def sdf(self, p):
         if len(p.shape) == 2: ## 2d array
-            #print("sdf return: ", -self.distance(p) if self.point_is_inside(p.all()) else self.distance(p))
             return -self.distance(p) if self.point_is_inside(p.all()) else self.distance(p)
         elif len(p.shape) == 1: ## a point
-            #print("sdf return: ", -self.distance(p) if self.point_is_inside(p) else self.distance(p))
             return -self.distance(p) if self.point_is_inside(p) else self.distance(p)
         else:
             raise NotImplementedError
-        
-        # return -self.distance(p) if self.point_is_inside(p) else self.distance(p)
-    
+            
     def point_is_inside(self, p):
         angle_sum = 0
         L = len(self.v)
@@ -70,7 +78,12 @@ class Polygon(Shape):
     def distance(self, p):
         ans = Geometry.distance_from_segment_to_point(self.v[-1], self.v[0], p)
         for i in range(len(self.v) - 1):
-            ans = min(ans, Geometry.distance_from_segment_to_point(self.v[i], self.v[i + 1], p))
+            if len(p.shape) == 2:
+                ans = np.minimum(ans, Geometry.distance_from_segment_to_point(self.v[i], self.v[i + 1], p))
+            elif len(p.shape) == 1:
+                ans = min(ans, Geometry.distance_from_segment_to_point(self.v[i], self.v[i + 1], p))
+            else:
+                raise NotImplementedError
         return ans
 
 
@@ -88,7 +101,7 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
     # See https://stackoverflow.com/questions/33282368/plotting-a-2d-heatmap-with-matplotlib
     
     ## this is the rasterization step that samples the 2D domain as a regular grid
-    COORDINATES_LINSPACE = np.linspace(-5, 5, 100)
+    COORDINATES_LINSPACE = np.linspace(-4, 4, 100)
     y, x = np.meshgrid(COORDINATES_LINSPACE, COORDINATES_LINSPACE)
     if not is_net:
         z = [[sdf_func(np.float_([x_, y_])) 
@@ -99,15 +112,21 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
         z = [[sdf_func(torch.Tensor([x_, y_]).to(device)).detach().cpu().numpy() 
                 for y_ in  COORDINATES_LINSPACE] 
                 for x_ in COORDINATES_LINSPACE]
+
     z = np.float_(z)
-        
+    z = np.reshape(z, (100, 100))
     z = z[:-1, :-1]
     z_min, z_max = -np.abs(z).max(), np.abs(z).max()
     
     z = (z - z_min) / (z_max - z_min) * 255
+
+    print("z: ", filename, z) 
+
     z = np.uint8(z)
     z = cv2.applyColorMap(z, cv2.COLORMAP_JET)
+    
+
     if filename is None:
         filename = "tmp_res.png"
-    # print(filename)
+
     cv2.imwrite(filename, z)

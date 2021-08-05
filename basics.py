@@ -21,7 +21,7 @@ from dataset import CircleSample, PolygonSample
 from torch.utils.data import TensorDataset, DataLoader
 
 # Set the following to True will load the 8-layer MLP network
-if False:
+if True:
     from network import Net
 else:
     class Net(nn.Module):
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
 
     ## training sdf
-    # # define the circle shape
+    # define the circle shape
     # circle = Circle(np.float_([0, 0]), 2)
     # # 2D points for training
     # points_train = np.float_([[x_, y_] 
@@ -73,14 +73,15 @@ if __name__ == "__main__":
     # )
 
     # define rectangle
-    rectangle = Polygon(np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]]))
+    v = np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]])
+    rectangle = Polygon(v)
     points_train = np.float_([[x_, y_]
                     for y_ in np.linspace(-3, 3, 40)
                     for x_ in np.linspace(-3, 3, 40)])
     sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
     plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
 
-    dataset = PolygonSample(np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]]))
+    dataset = PolygonSample(v=v)
     dataloader = data_utils.DataLoader(
         dataset,
         batch_size=int(1e4),
