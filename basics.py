@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 import torch.utils.data as data_utils
+from torch.utils.tensorboard import SummaryWriter
 
 # I move the geometry related functions and classes to the package file "geometry"
 from geometry import Circle, Polygon, plot_sdf_using_opencv
@@ -108,6 +109,8 @@ if __name__ == "__main__":
 
     clamp_dist = 0.1
 
+    writer = SummaryWriter()
+
     ## main training process
     epochs = 1000
     for epoch in range(epochs):
@@ -122,7 +125,7 @@ if __name__ == "__main__":
             # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
             """
             """
-            #pred = pred.squeeze() 
+            pred = pred.squeeze() 
 
             # compute loss for this batch
             """
@@ -130,6 +133,9 @@ if __name__ == "__main__":
             """
             pred = torch.clamp(pred, -clamp_dist, clamp_dist)
             sdfs_b = torch.clamp(sdfs_b, -clamp_dist, clamp_dist)
+            #pred = pred.reshape([10000, 1])
+            sdfs_b = sdfs_b.squeeze()
+
             loss = F.l1_loss(pred, sdfs_b)
             # aggregate losses in an epoch to check the loss for the entire shape
             total_loss += loss
@@ -157,6 +163,7 @@ if __name__ == "__main__":
                 pred = net(points_b)
                 # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
                 # pred = pred.squeeze()
+                sdfs_b = sdfs_b.squeeze()
 
                 # loss function
                 pred = torch.clamp(pred, -clamp_dist, clamp_dist)
@@ -167,5 +174,8 @@ if __name__ == "__main__":
         if (epoch % 100 == 0):
             filename = os.path.join(res_dir, "test_res_"+str(epoch)+".png")
             plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
+        
+        writer.add_scalar('Loss/Train', total_loss.item(), epoch)
+        writer.add_scalar('Loss/Test', test_total_loss.item(), epoch)
 
         print("Epoch:", epoch, "Loss:", total_loss.item(), "Test Loss:", test_total_loss.item())

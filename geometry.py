@@ -119,9 +119,6 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
     z_min, z_max = -np.abs(z).max(), np.abs(z).max()
     
     z = (z - z_min) / (z_max - z_min) * 255
-
-    print("z: ", filename, z) 
-
     z = np.uint8(z)
     z = cv2.applyColorMap(z, cv2.COLORMAP_JET)
     
