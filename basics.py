@@ -163,7 +163,7 @@ if __name__ == "__main__":
                 pred = net(points_b)
                 # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
                 # pred = pred.squeeze()
-                sdfs_b = sdfs_b.squeeze()
+                #sdfs_b = sdfs_b.squeeze()
 
                 # loss function
                 pred = torch.clamp(pred, -clamp_dist, clamp_dist)
