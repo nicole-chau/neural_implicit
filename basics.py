@@ -147,7 +147,7 @@ if __name__ == "__main__":
         
         #print("Epoch:", epoch, "Loss:", total_loss.item())
         
-        if (epoch % 100 == 0):
+        if (epoch % 100 == 0 or epoch == 10):
             filename = os.path.join(res_dir, "res_"+str(epoch)+".png")
             plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
 
@@ -171,7 +171,7 @@ if __name__ == "__main__":
                 test_loss = F.l1_loss(pred, sdfs_b)
                 test_total_loss += test_loss
 
-        if (epoch % 100 == 0):
+        if (epoch % 100 == 0 or epoch == 10):
             filename = os.path.join(res_dir, "test_res_"+str(epoch)+".png")
             plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
         

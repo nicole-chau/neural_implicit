@@ -121,14 +121,13 @@ class PolygonSample(torch.utils.data.Dataset):
 
         ## generate sample points
         noise = np.random.randn(2, int(num_sample_pts)) ## standard normal dist
-        random_indices = np.random.choice(range(0,int(num_base_pts)), int(num_sample_pts))
+        random_indices = np.random.choice(range(0, int(num_base_pts)), int(num_sample_pts))
         self.samples = self.surfpts[:,random_indices] + noise*0.1
         self.sdf = self.shape.sdf(self.samples)
         self.sdf = np.clip(self.sdf, -1.0, 1.0)
         
         ## if we need this one
         self.data = np.concatenate([self.samples, np.expand_dims(self.sdf, axis=0)], axis=0)
-
 
     def draw(self):
         plot_sdf_using_opencv(self.shape.sdf, device=None, filename=self.filename)
