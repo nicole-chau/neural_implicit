@@ -7,8 +7,8 @@ class Geometry:
     EPS = 1e-12
     def distance_from_segment_to_point(a, b, p):
         if len(p.shape) == 2:
-            a_expand = np.expand_dims(a, axis=-1) 
-            b_expand = np.expand_dims(b, axis=-1)
+            a_expand = a.reshape(2, 1)
+            b_expand = b.reshape(2, 1)
             ans = np.minimum(np.linalg.norm(a_expand - p, axis=0), np.linalg.norm(b_expand - p, axis=0))
 
             num_col = np.shape(p)[1]
@@ -19,7 +19,6 @@ class Geometry:
                 and np.dot(curr - a, b - a) > Geometry.EPS 
                 and np.dot(curr - b, a - b) > Geometry.EPS):
                     ans[i] = abs(np.cross(curr - a, b - a) / np.linalg.norm(b - a))
-
             return ans
         elif len(p.shape) == 1:
             ans = min(np.linalg.norm(a - p), np.linalg.norm(b - p))
@@ -79,9 +78,9 @@ class Polygon(Shape):
             for i in range(num_col):
                 curr = p[:, i]                
                 L = len(self.v)
-                for i in range(L):
-                    a = self.v[i]
-                    b = self.v[(i + 1) % L]
+                for j in range(L):
+                    a = self.v[j]
+                    b = self.v[(j + 1) % L]
                     angle_sum[i] += np.arctan2(np.cross(a - curr, b - curr), np.dot(a - curr, b - curr))
                 is_inside[i] = abs(angle_sum[i]) > 1
             return is_inside
@@ -123,12 +122,13 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
     # See https://stackoverflow.com/questions/33282368/plotting-a-2d-heatmap-with-matplotlib
     
     ## this is the rasterization step that samples the 2D domain as a regular grid
-    COORDINATES_LINSPACE = np.linspace(-4, 4, 100)
+    COORDINATES_LINSPACE = np.linspace(-4, 4, 200)
     y, x = np.meshgrid(COORDINATES_LINSPACE, COORDINATES_LINSPACE)
     if not is_net:
         z = [[sdf_func(np.float_([x_, y_])) 
                 for y_ in  COORDINATES_LINSPACE] 
                 for x_ in COORDINATES_LINSPACE]
+        
     else:
         ## convert []
         z = [[sdf_func(torch.Tensor([x_, y_]).to(device)).detach().cpu().numpy() 
@@ -136,7 +136,7 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
                 for x_ in COORDINATES_LINSPACE]
 
     z = np.float_(z)
-    z = np.reshape(z, (100, 100))
+    z = np.reshape(z, (200, 200))
     z = z[:-1, :-1]
     z_min, z_max = -np.abs(z).max(), np.abs(z).max()
 

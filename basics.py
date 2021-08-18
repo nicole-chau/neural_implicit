@@ -74,13 +74,22 @@ if __name__ == "__main__":
     # )
 
     # define rectangle
-    v = np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]])
-    rectangle = Polygon(v)
+    # v = np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]])
+    # rectangle = Polygon(v)
+    # points_train = np.float_([[x_, y_]
+    #                 for y_ in np.linspace(-3, 3, 40)
+    #                 for x_ in np.linspace(-3, 3, 40)])
+    # sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
+    # plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
+
+    # define triangle 
+    v = np.float_([[0, -2], [0, 2], [2, 0]])
+    triangle = Polygon(v)
     points_train = np.float_([[x_, y_]
                     for y_ in np.linspace(-3, 3, 40)
                     for x_ in np.linspace(-3, 3, 40)])
-    sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
-    plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
+    sdf_train = np.float_(list(map(triangle.sdf, points_train)))
+    plot_sdf_using_opencv(triangle.sdf, device=None, filename='triangle.png')
 
     dataset = PolygonSample(v=v)
     dataloader = data_utils.DataLoader(
@@ -164,6 +173,7 @@ if __name__ == "__main__":
                 # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
                 # pred = pred.squeeze()
                 #sdfs_b = sdfs_b.squeeze()
+                # pred = pred.squeeze() 
 
                 # loss function
                 pred = torch.clamp(pred, -clamp_dist, clamp_dist)
@@ -171,7 +181,7 @@ if __name__ == "__main__":
                 test_loss = F.l1_loss(pred, sdfs_b)
                 test_total_loss += test_loss
 
-        if (epoch % 100 == 0 or epoch == 10):
+        if (epoch == 0 or ((epoch + 1) % 100 == 0)):
             filename = os.path.join(res_dir, "test_res_"+str(epoch)+".png")
             plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
         
