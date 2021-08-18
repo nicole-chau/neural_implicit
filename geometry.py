@@ -122,7 +122,7 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
     # See https://stackoverflow.com/questions/33282368/plotting-a-2d-heatmap-with-matplotlib
     
     ## this is the rasterization step that samples the 2D domain as a regular grid
-    COORDINATES_LINSPACE = np.linspace(-4, 4, 200)
+    COORDINATES_LINSPACE = np.linspace(-4, 4, 100)
     y, x = np.meshgrid(COORDINATES_LINSPACE, COORDINATES_LINSPACE)
     if not is_net:
         z = [[sdf_func(np.float_([x_, y_])) 
@@ -136,7 +136,7 @@ def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
                 for x_ in COORDINATES_LINSPACE]
 
     z = np.float_(z)
-    z = np.reshape(z, (200, 200))
+    z = np.reshape(z, (100, 100))
     z = z[:-1, :-1]
     z_min, z_max = -np.abs(z).max(), np.abs(z).max()
 

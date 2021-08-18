@@ -49,29 +49,29 @@ if __name__ == "__main__":
 
     ## training sdf
     # define the circle shape
-    # circle = Circle(np.float_([0, 0]), 2)
-    # # 2D points for training
-    # points_train = np.float_([[x_, y_] 
-    #                 for y_ in  np.linspace(-3, 3, 40) 
-    #                 for x_ in np.linspace(-3, 3, 40)])
-    # # sdf value at these 2d points 
-    # sdf_train = np.float_(list(map(circle.sdf, points_train)))
-    # # visualize the 2d points with sdf values
-    # plot_sdf_using_opencv(circle.sdf, device=None, filename='circle.png')
-    # # plt.scatter(points_train[:,0], points_train[:,1], color=(1, 1, 1, 0), edgecolor="#000000")
+    circle = Circle(np.float_([0, 0]), 2)
+    # 2D points for training
+    points_train = np.float_([[x_, y_] 
+                    for y_ in  np.linspace(-3, 3, 40) 
+                    for x_ in np.linspace(-3, 3, 40)])
+    # sdf value at these 2d points 
+    sdf_train = np.float_(list(map(circle.sdf, points_train)))
+    # visualize the 2d points with sdf values
+    plot_sdf_using_opencv(circle.sdf, device=None, filename='circle.png')
+    # plt.scatter(points_train[:,0], points_train[:,1], color=(1, 1, 1, 0), edgecolor="#000000")
 
-    # # ## now we make the dataset and dataloader for training
-    # # train_ds = TensorDataset(torch.Tensor(points_train), torch.Tensor(sdf_train))
-    # # train_dl = DataLoader(train_ds, shuffle=True, batch_size=len(train_ds))
+    # ## now we make the dataset and dataloader for training
+    # train_ds = TensorDataset(torch.Tensor(points_train), torch.Tensor(sdf_train))
+    # train_dl = DataLoader(train_ds, shuffle=True, batch_size=len(train_ds))
     
     # # I replace the above dataloader with the following one, using the customized dataset CircleSample
-    # dataset = CircleSample(center_x=0,center_y=0,radius=2)
-    # dataloader = data_utils.DataLoader(
-    #     dataset,
-    #     batch_size=int(1e4),
-    #     shuffle=True,
-    #     drop_last=False,
-    # )
+    dataset = CircleSample(center_x=0,center_y=0,radius=2)
+    dataloader = data_utils.DataLoader(
+        dataset,
+        batch_size=int(1e4),
+        shuffle=True,
+        drop_last=False,
+    )
 
     # define rectangle
     # v = np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]])
@@ -83,21 +83,21 @@ if __name__ == "__main__":
     # plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
 
     # define triangle 
-    v = np.float_([[0, -2], [0, 2], [2, 0]])
-    triangle = Polygon(v)
-    points_train = np.float_([[x_, y_]
-                    for y_ in np.linspace(-3, 3, 40)
-                    for x_ in np.linspace(-3, 3, 40)])
-    sdf_train = np.float_(list(map(triangle.sdf, points_train)))
-    plot_sdf_using_opencv(triangle.sdf, device=None, filename='triangle.png')
+    # v = np.float_([[0, -2], [0, 2], [2, 0]])
+    # triangle = Polygon(v)
+    # points_train = np.float_([[x_, y_]
+    #                 for y_ in np.linspace(-3, 3, 40)
+    #                 for x_ in np.linspace(-3, 3, 40)])
+    # sdf_train = np.float_(list(map(triangle.sdf, points_train)))
+    # plot_sdf_using_opencv(triangle.sdf, device=None, filename='triangle.png')
 
-    dataset = PolygonSample(v=v)
-    dataloader = data_utils.DataLoader(
-        dataset,
-        batch_size=int(1e4),
-        shuffle=True,
-        drop_last=False,
-    )
+    # dataset = PolygonSample(v=v)
+    # dataloader = data_utils.DataLoader(
+    #     dataset,
+    #     batch_size=int(1e4),
+    #     shuffle=True,
+    #     drop_last=False,
+    # )
 
 
     ## use cuda or not?
@@ -120,17 +120,30 @@ if __name__ == "__main__":
 
     writer = SummaryWriter()
 
+    lat_size = 128
+    lat_vec = nn.init.normal_(torch.empty(lat_size), mean=0, std=0.01)
+
     ## main training process
     epochs = 1000
     for epoch in range(epochs):
         net.train() # set network to the train mode
         total_loss = 0 
         for points_b, sdfs_b in dataloader:
+
+            if (len(points_b.shape) == 2):
+                lat_vec = lat_vec.repeat(points_b.shape[0], 1)
+                input = torch.cat([lat_vec, points_b], dim=-1)
+            elif (len(points_b.shape) == 1):
+                input = torch.cat([lat_vec, points_b], dim=0)
+            else:
+                raise NotImplementedError
+
+            #input = torch.cat([lat_vec, points_b], dim=0)
             # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)
             if use_cuda:
-                points_b = points_b.to(device)
+                input = input.to(device)
                 sdfs_b = sdfs_b.to(device)
-            pred = net(points_b)
+            pred = net(input)
             # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
             """
             """

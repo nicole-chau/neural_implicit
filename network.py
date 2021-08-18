@@ -6,15 +6,18 @@ class Net(nn.Module):
 
     def __init__(self, skip_link_at = 4):
         super(Net, self).__init__()
-        self.skip_link_at = skip_link_at
+
         num_neurons = 512
+        lat_size = 128
+
+        self.skip_link_at = skip_link_at
         self.mlp_list = nn.ModuleList()
         self.actv_list = nn.ModuleList()
-        self.mlp_list.append(nn.utils.weight_norm(nn.Linear(2, num_neurons)))
+        self.mlp_list.append(nn.utils.weight_norm(nn.Linear(2 + lat_size, num_neurons)))
         self.actv_list.append(nn.ReLU(inplace=False))
         for i in range(1,7):
             if i == self.skip_link_at:
-                self.mlp_list.append(nn.utils.weight_norm(nn.Linear(num_neurons+2, num_neurons)))
+                self.mlp_list.append(nn.utils.weight_norm(nn.Linear(num_neurons+2 + lat_size, num_neurons)))
             else:
                 self.mlp_list.append(nn.utils.weight_norm(nn.Linear(num_neurons, num_neurons)))
             self.actv_list.append(nn.ReLU(inplace=False))
