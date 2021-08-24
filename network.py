@@ -17,7 +17,7 @@ class Net(nn.Module):
         self.actv_list.append(nn.ReLU(inplace=False))
         for i in range(1,7):
             if i == self.skip_link_at:
-                self.mlp_list.append(nn.utils.weight_norm(nn.Linear(num_neurons+2 + lat_size, num_neurons)))
+                self.mlp_list.append(nn.utils.weight_norm(nn.Linear(num_neurons+ 2 + lat_size, num_neurons)))
             else:
                 self.mlp_list.append(nn.utils.weight_norm(nn.Linear(num_neurons, num_neurons)))
             self.actv_list.append(nn.ReLU(inplace=False))
@@ -35,6 +35,9 @@ class Net(nn.Module):
             fc, actv = layer
             if idx == self.skip_link_at:
                 x = torch.cat([x, pt], dim=-1)
+            
+            print("idx: ", idx, x.shape)
+
             x = actv(fc(x))
 
             if idx != (len(self.mlp_list) - 1):

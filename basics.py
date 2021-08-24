@@ -66,9 +66,10 @@ if __name__ == "__main__":
     
     # # I replace the above dataloader with the following one, using the customized dataset CircleSample
     dataset = CircleSample(center_x=0,center_y=0,radius=2)
+    batch_size = int(100)
     dataloader = data_utils.DataLoader(
         dataset,
-        batch_size=int(1e4),
+        batch_size=batch_size,
         shuffle=True,
         drop_last=False,
     )
@@ -122,6 +123,7 @@ if __name__ == "__main__":
 
     lat_size = 128
     lat_vec = nn.init.normal_(torch.empty(lat_size), mean=0, std=0.01)
+    lat_vec_repeat = lat_vec.repeat(batch_size, 1)
 
     ## main training process
     epochs = 1000
@@ -131,8 +133,8 @@ if __name__ == "__main__":
         for points_b, sdfs_b in dataloader:
 
             if (len(points_b.shape) == 2):
-                lat_vec = lat_vec.repeat(points_b.shape[0], 1)
-                input = torch.cat([lat_vec, points_b], dim=-1)
+                # lat_vec = lat_vec.repeat(points_b.shape[0], 1)
+                input = torch.cat([lat_vec_repeat, points_b], dim=-1)
             elif (len(points_b.shape) == 1):
                 input = torch.cat([lat_vec, points_b], dim=0)
             else:
