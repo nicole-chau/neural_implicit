@@ -44,7 +44,7 @@ class Circle(Shape):
         self.r = r
     
     def sdf(self, p):
-        if len(p.shape) == 2: ## 2d array
+        if len(p.shape) == 2 or p.shape[0] > 2: ## 2d array
             c = self.c.reshape(2, 1)
             return np.linalg.norm(p - c, axis=0) - self.r
         elif len(p.shape) == 1: ## a point
@@ -118,25 +118,42 @@ class ComposedShape(Shape):
         return np.min(sdfs)
 
 
-def plot_sdf_using_opencv(sdf_func, device, filename=None, is_net=False):
+def plot_sdf_using_opencv(sdf_func, device, lat_vec, filename=None, is_net=False):
     # See https://stackoverflow.com/questions/33282368/plotting-a-2d-heatmap-with-matplotlib
     
     ## this is the rasterization step that samples the 2D domain as a regular grid
-    COORDINATES_LINSPACE = np.linspace(-4, 4, 100)
+    COORDINATES_LINSPACE = np.linspace(-4, 4, 200)
     y, x = np.meshgrid(COORDINATES_LINSPACE, COORDINATES_LINSPACE)
+
+    print("coord: ", type(COORDINATES_LINSPACE))
+
+    y = np.reshape(y, (y.shape[0], y.shape[1], 1))
+    x = np.reshape(x, (x.shape[0], x.shape[1], 1))
+
+    if lat_vec is not None:
+        lat_vec = np.tile(lat_vec, (x.shape[0], x.shape[1], 1))
+        lat_vec_x = np.concatenate((lat_vec, x), axis=2)
+
     if not is_net:
-        z = [[sdf_func(np.float_([x_, y_])) 
-                for y_ in  COORDINATES_LINSPACE] 
-                for x_ in COORDINATES_LINSPACE]
-        
+        if lat_vec is None: 
+            z = [[sdf_func(np.float_([x_, y_])) 
+                    for y_ in  COORDINATES_LINSPACE] 
+                    for x_ in COORDINATES_LINSPACE]
+        else:
+            z = [[sdf_func(np.concatenate((lat_vec_x, y), axis=2))]]
+            
     else:
         ## convert []
-        z = [[sdf_func(torch.Tensor([x_, y_]).to(device)).detach().cpu().numpy() 
-                for y_ in  COORDINATES_LINSPACE] 
-                for x_ in COORDINATES_LINSPACE]
+        if lat_vec is None:
+            z = [[sdf_func(torch.Tensor([x_, y_]).to(device)).detach().cpu().numpy() 
+                    for y_ in  COORDINATES_LINSPACE] 
+                    for x_ in COORDINATES_LINSPACE]
+        else:
+            z = [[sdf_func(torch.Tensor(np.concatenate((lat_vec_x, y), axis=2)).to(device)).detach().cpu().numpy()]]
 
     z = np.float_(z)
-    z = np.reshape(z, (100, 100))
+    z = np.reshape(z, (200, 200))
+
     z = z[:-1, :-1]
     z_min, z_max = -np.abs(z).max(), np.abs(z).max()
 

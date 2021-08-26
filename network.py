@@ -31,12 +31,11 @@ class Net(nn.Module):
 
     def forward(self, x):
         pt = deepcopy(x)
+
         for idx, layer in enumerate(zip(self.mlp_list, self.actv_list)):
             fc, actv = layer
             if idx == self.skip_link_at:
                 x = torch.cat([x, pt], dim=-1)
-            
-            print("idx: ", idx, x.shape)
 
             x = actv(fc(x))
 
@@ -44,3 +43,4 @@ class Net(nn.Module):
                 x = self.dropout(x)
 
         return x
+
