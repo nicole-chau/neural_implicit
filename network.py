@@ -27,11 +27,12 @@ class Net(nn.Module):
 
         self.dropout = nn.Dropout(0.2)
 
-        self.embedding = torch.nn.Embedding(4, lat_size)
+        self.embedding = torch.nn.Embedding(7, lat_size)
 
         print(self)
 
     def forward(self, x):
+
         lat_vecs = None
         if (len(x.shape) == 2 and x.shape[1] == 3):
             pt = deepcopy(x[:, 1:])
@@ -61,10 +62,6 @@ class Net(nn.Module):
             if idx == self.skip_link_at:
                 input = torch.cat([input, pt], dim=-1)
 
-            # if idx == self.skip_link_at:
-            #     input = torch.cat([input, pt], dim=-1)
-
-            #print("input: ", input.shape, input)
             input = actv(fc(input))
 
             if idx != (len(self.mlp_list) - 1):

@@ -42,31 +42,31 @@ else:
 if __name__ == "__main__":
 
     ## make a folder for storing the output images
-    res_dir = 'res_dir'
-    if not os.path.exists(res_dir):
-        os.makedirs(res_dir)
+    res_dir1 = 'res_dir1'
+    if not os.path.exists(res_dir1):
+        os.makedirs(res_dir1)
 
 
     ## training sdf
-    # define the circle shape
-    circle = Circle(np.float_([0, 0]), 2)
-    # 2D points for training
-    points_train = np.float_([[x_, y_] 
-                    for y_ in  np.linspace(-3, 3, 40) 
+    # define square
+    v_rec = np.float_([[-1, -1], [-1, 1], [1, 1], [1, -1]])
+    rectangle = Polygon(v_rec)
+    points_train = np.float_([[x_, y_]
+                    for y_ in np.linspace(-3, 3, 40)
                     for x_ in np.linspace(-3, 3, 40)])
-    # sdf value at these 2d points 
-    sdf_train = np.float_(list(map(circle.sdf, points_train)))
-    # visualize the 2d points with sdf values
-    plot_sdf_using_opencv(circle.sdf, device=None, filename='circle.png')
-    # plt.scatter(points_train[:,0], points_train[:,1], color=(1, 1, 1, 0), edgecolor="#000000")
+    sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
+    plot_sdf_using_opencv(rectangle.sdf, device=None, filename='square.png')
+    dataset_rec = PolygonSample(v=v_rec, id=0)
 
-    dataset_circle = CircleSample(center_x=0,center_y=0,radius=2, id=0)
-    # dataloader = data_utils.DataLoader(
-    #     dataset,
-    #     batch_size=int(1e4),
-    #     shuffle=True,
-    #     drop_last=False,
-    # )
+    # define rectangle1
+    v_rec = np.float_([[-0.5, -0.5], [-0.5, 0.5], [1, 0.5], [1, -0.5]])
+    rectangle = Polygon(v_rec)
+    points_train = np.float_([[x_, y_]
+                    for y_ in np.linspace(-3, 3, 40)
+                    for x_ in np.linspace(-3, 3, 40)])
+    sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
+    plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle1.png')
+    dataset_rec = PolygonSample(v=v_rec, id=1)
 
     # define rectangle1
     v_rec = np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]])
@@ -75,10 +75,27 @@ if __name__ == "__main__":
                     for y_ in np.linspace(-3, 3, 40)
                     for x_ in np.linspace(-3, 3, 40)])
     sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
-    plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
+    plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle2.png')
+    dataset_rec = PolygonSample(v=v_rec, id=2)
 
-    dataset_rec = PolygonSample(v=v_rec, id=1)
-    
+    # define rectangle1
+    v_rec = np.float_([[-1.5, -1.5], [-1.5, 1.5], [2.5, 1.5], [2.5, -1.5]])
+    rectangle = Polygon(v_rec)
+    points_train = np.float_([[x_, y_]
+                    for y_ in np.linspace(-3, 3, 40)
+                    for x_ in np.linspace(-3, 3, 40)])
+    sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
+    plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle3.png')
+    dataset_rec = PolygonSample(v=v_rec, id=3)
+
+    # define the circle shape
+    circle = Circle(np.float_([0, 0]), 2)
+    points_train = np.float_([[x_, y_] 
+                    for y_ in  np.linspace(-3, 3, 40) 
+                    for x_ in np.linspace(-3, 3, 40)])
+    sdf_train = np.float_(list(map(circle.sdf, points_train)))
+    plot_sdf_using_opencv(circle.sdf, device=None, filename='circle.png')
+    dataset_circle = CircleSample(center_x=0,center_y=0,radius=2, id=4)
 
     # define triangle 
     v_tri = np.float_([[0, -2], [0, 2], [2, 0]])
@@ -88,8 +105,7 @@ if __name__ == "__main__":
                     for x_ in np.linspace(-3, 3, 40)])
     sdf_train = np.float_(list(map(triangle.sdf, points_train)))
     plot_sdf_using_opencv(triangle.sdf, device=None, filename='triangle.png')
-
-    dataset_tri = PolygonSample(v=v_tri, id=2)
+    dataset_tri = PolygonSample(v=v_tri, id=5)
 
     # define pentagon 
     v_pent = np.float_([[0, 2], [2, 0], [0, -2], [-2, -1], [-2, 1]])
@@ -99,8 +115,7 @@ if __name__ == "__main__":
                     for x_ in np.linspace(-3, 3, 40)])
     sdf_train = np.float_(list(map(pentagon.sdf, points_train)))
     plot_sdf_using_opencv(pentagon.sdf, device=None, filename='pentagon.png')
-
-    dataset_pent = PolygonSample(v=v_pent, id=3)
+    dataset_pent = PolygonSample(v=v_pent, id=6)
 
     all_datasets = torch.utils.data.ConcatDataset([dataset_circle, dataset_rec, dataset_tri, dataset_pent])
 
@@ -112,11 +127,9 @@ if __name__ == "__main__":
         drop_last=False,
     )
 
-
     ## use cuda or not?
     use_cuda = torch.cuda.is_available()
     print("do you have cuda?", use_cuda)
-
 
     ## this is to instantiate a network defined
     # You may change net to a 8-layer MLP for a better result (goto: Line21)
@@ -135,7 +148,6 @@ if __name__ == "__main__":
 
     lat_size = 128
     lat_vec = nn.init.normal_(torch.empty(lat_size), mean=0, std=0.01)
-    lat_vec_repeat = lat_vec.repeat(batch_size, 1)
 
     ## main training process
     epochs = 1000
@@ -143,15 +155,7 @@ if __name__ == "__main__":
         net.train() # set network to the train mode
         total_loss = 0 
         for points_b, sdfs_b in dataloader:
-            # if (len(points_b.shape) == 2):
-            #     input = torch.cat([lat_vec_repeat, points_b], dim=-1)
-            # elif (len(points_b.shape) == 1):
-            #     input = torch.cat([lat_vec, points_b], dim=0)
-            # else:
-            #     raise NotImplementedError
-
-            # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)
-            
+            # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)       
             if use_cuda:
                 points_b = points_b.to(device)
                 sdfs_b = sdfs_b.to(device)
@@ -182,37 +186,32 @@ if __name__ == "__main__":
         #print("Epoch:", epoch, "Loss:", total_loss.item())
         
         if (epoch == 0 or ((epoch + 1) % 100 == 0)):
-            filename = os.path.join(res_dir, "res_"+str(epoch)+".png")
+            filename = os.path.join(res_dir1, "res_"+str(epoch)+".png")
             train_name = "res_"+str(epoch)+".png"
-            # lat_vecs = net.get_lat_vecs
 
-            # plot circle
-            plot_sdf_using_opencv(net.forward, device=device, id=0, filename=os.path.join(res_dir, "0_"+train_name), is_net=True)
+            for j in range(7):
+                plot_sdf_using_opencv(net.forward, device=device, id=j, filename=os.path.join(res_dir1, str(j)+"_"+train_name), is_net=True)
 
-            # plot rectangle
-            plot_sdf_using_opencv(net.forward, device=device, id=1, filename=os.path.join(res_dir, "1_"+train_name), is_net=True)
+            lats = net.get_lat_vecs()
+            index = torch.LongTensor([0, 1, 2, 3, 4, 5, 6])
+            if use_cuda:
+                index = index.to(device)
+            lat_vecs = lats(index)
 
-            # plot triangle
-            plot_sdf_using_opencv(net.forward, device=device, id=2, filename=os.path.join(res_dir, "2_"+train_name), is_net=True)
+            affinity = np.empty((len(lat_vecs), len(lat_vecs)))
 
-            # plot pentagon
-            plot_sdf_using_opencv(net.forward, device=device, id=3, filename=os.path.join(res_dir, "3_"+train_name), is_net=True)
+            for i in range(len(lat_vecs)):
+                for j in range(len(lat_vecs)):
+                    affinity[i][j] = torch.dot(lat_vecs[i], lat_vecs[j]) / (torch.norm(lat_vecs[i]) * torch.norm(lat_vecs[j]))
+
+            print(affinity)
 
         test_total_loss = 0
         # set to evaluation mode
         net.eval()
         with torch.no_grad():
             for points_b, sdfs_b in dataloader:
-                # if (len(points_b.shape) == 2):
-                #     # lat_vec = lat_vec.repeat(points_b.shape[0], 1)
-                #     input = torch.cat([lat_vec_repeat, points_b], dim=-1)
-                # elif (len(points_b.shape) == 1):
-                #     input = torch.cat([lat_vec, points_b], dim=0)
-                # else:
-                #     raise NotImplementedError
-
-            #input = torch.cat([lat_vec, points_b], dim=0)
-            # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)
+                # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)
                 if use_cuda:
                     points_b = points_b.to(device)
                     sdfs_b = sdfs_b.to(device)
@@ -229,22 +228,27 @@ if __name__ == "__main__":
                 test_total_loss += test_loss
 
         if (epoch == 0 or ((epoch + 1) % 100 == 0)):
-            filename = os.path.join(res_dir, "test_res_"+str(epoch)+".png")
+            filename = os.path.join(res_dir1, "test_res_"+str(epoch)+".png")
             test_name = "test_res_"+str(epoch)+".png"
             # plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
 
-            # plot circle
-            plot_sdf_using_opencv(net.forward, device=device, id=0, filename=os.path.join(res_dir, "0_"+test_name), is_net=True)
+            for j in range(7):
+                plot_sdf_using_opencv(net.forward, device=device, id=j, filename=os.path.join(res_dir1, str(j)+"_"+train_name), is_net=True)
 
-            # plot rectangle
-            plot_sdf_using_opencv(net.forward, device=device, id=1, filename=os.path.join(res_dir, "1_"+test_name), is_net=True)
+            lats = net.get_lat_vecs()
+            index = torch.LongTensor([0, 1, 2, 3, 4, 5, 6])
+            if use_cuda:
+                index = index.to(device)
+            lat_vecs = lats(index)
 
-            # plot triangle
-            plot_sdf_using_opencv(net.forward, device=device, id=2, filename=os.path.join(res_dir, "2_"+test_name), is_net=True)
+            affinity = np.empty((len(lat_vecs), len(lat_vecs)))
 
-            # plot pentagon
-            plot_sdf_using_opencv(net.forward, device=device, id=3, filename=os.path.join(res_dir, "3_"+test_name), is_net=True)
-        
+            for i in range(len(lat_vecs)):
+                for j in range(len(lat_vecs)):
+                    affinity[i][j] = torch.dot(lat_vecs[i], lat_vecs[j]) / (torch.norm(lat_vecs[i]) * torch.norm(lat_vecs[j]))
+
+            print(affinity)
+
         writer.add_scalar('Loss/Train', total_loss.item(), epoch)
         writer.add_scalar('Loss/Test', test_total_loss.item(), epoch)
 

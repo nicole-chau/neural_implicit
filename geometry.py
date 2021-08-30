@@ -132,7 +132,6 @@ def plot_sdf_using_opencv(sdf_func, device, id=-1, filename=None, is_net=False):
     if id != -1:
         id_arr = np.tile(id, (x.shape[0], x.shape[1], 1))
         id_x = np.concatenate((id_arr, x), axis=2)
-        # print("id_x: ", id_x.shape, id_x)
 
     if not is_net:
         if id == -1: 
