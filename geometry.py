@@ -44,6 +44,7 @@ class Circle(Shape):
         self.r = r
     
     def sdf(self, p):
+        # print("p.shape: ", p.shape)
         if len(p.shape) == 2 or p.shape[0] > 2: ## 2d array
             c = self.c.reshape(2, 1)
             return np.linalg.norm(p - c, axis=0) - self.r
@@ -118,38 +119,37 @@ class ComposedShape(Shape):
         return np.min(sdfs)
 
 
-def plot_sdf_using_opencv(sdf_func, device, lat_vec, filename=None, is_net=False):
+def plot_sdf_using_opencv(sdf_func, device, id=-1, filename=None, is_net=False):
     # See https://stackoverflow.com/questions/33282368/plotting-a-2d-heatmap-with-matplotlib
     
     ## this is the rasterization step that samples the 2D domain as a regular grid
     COORDINATES_LINSPACE = np.linspace(-4, 4, 200)
     y, x = np.meshgrid(COORDINATES_LINSPACE, COORDINATES_LINSPACE)
 
-    print("coord: ", type(COORDINATES_LINSPACE))
-
     y = np.reshape(y, (y.shape[0], y.shape[1], 1))
     x = np.reshape(x, (x.shape[0], x.shape[1], 1))
 
-    if lat_vec is not None:
-        lat_vec = np.tile(lat_vec, (x.shape[0], x.shape[1], 1))
-        lat_vec_x = np.concatenate((lat_vec, x), axis=2)
+    if id != -1:
+        id_arr = np.tile(id, (x.shape[0], x.shape[1], 1))
+        id_x = np.concatenate((id_arr, x), axis=2)
+        # print("id_x: ", id_x.shape, id_x)
 
     if not is_net:
-        if lat_vec is None: 
+        if id == -1: 
             z = [[sdf_func(np.float_([x_, y_])) 
                     for y_ in  COORDINATES_LINSPACE] 
                     for x_ in COORDINATES_LINSPACE]
         else:
-            z = [[sdf_func(np.concatenate((lat_vec_x, y), axis=2))]]
+            z = [[sdf_func(np.concatenate((id_x, y), axis=2))]]
             
     else:
         ## convert []
-        if lat_vec is None:
+        if id == -1:
             z = [[sdf_func(torch.Tensor([x_, y_]).to(device)).detach().cpu().numpy() 
                     for y_ in  COORDINATES_LINSPACE] 
                     for x_ in COORDINATES_LINSPACE]
         else:
-            z = [[sdf_func(torch.Tensor(np.concatenate((lat_vec_x, y), axis=2)).to(device)).detach().cpu().numpy()]]
+            z = [[sdf_func(torch.Tensor(np.concatenate((id_x, y), axis=2)).to(device)).detach().cpu().numpy()]]
 
     z = np.float_(z)
     z = np.reshape(z, (200, 200))
@@ -168,5 +168,7 @@ def plot_sdf_using_opencv(sdf_func, device, lat_vec, filename=None, is_net=False
 
     if filename is None:
         filename = "tmp_res.png"
+    
+    print(filename)
 
     cv2.imwrite(filename, z)

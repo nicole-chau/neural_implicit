@@ -15,12 +15,14 @@ class CircleSample(torch.utils.data.Dataset):
         center_x:float,
         center_y:float,
         radius:float,
+        id,
         num_base_pts=1e3,
         num_sample_pts=1e5,
         train_per_shape = False
     ):
         self.shape = Circle(np.float_([center_x, center_y]), radius)
         self.train_per_shape = train_per_shape
+        self.id = id
         
         ## get surface points
         rands = np.random.rand(int(num_base_pts))*2.0*3.142 ## map uniform dist [0, 1) to [0, 2Pi)
@@ -49,23 +51,29 @@ class CircleSample(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         if self.train_per_shape:
-            return self.samples, self.sdf
+            id_arr = np.array([self.id])
+            # return self.samples, self.sdf
+            return np.concatenate((id_arr, self.samples)), self.sdf
         else:
             pt = torch.from_numpy(self.samples[:, idx]).to(torch.float)
             sdf = torch.Tensor([self.sdf[idx]]).to(torch.float)
-            return pt, sdf
+            shape_id = torch.Tensor([self.id])
+            # return pt, sdf
+            return torch.cat((shape_id, pt)), sdf
 
 
 class PolygonSample(torch.utils.data.Dataset):
     def __init__(
         self,
         v,
+        id,
         num_base_pts = 1e3,
         num_sample_pts = 1e5,
         train_per_shape = False
     ):
         self.shape = Polygon(v)
         self.train_per_shape = train_per_shape
+        self.id = id
 
         ## get surface points
         # calculate perimeter
@@ -140,8 +148,12 @@ class PolygonSample(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         if self.train_per_shape:
-            return self.samples, self.sdf
+            id_arr = np.array([self.id])
+            # return self.samples, self.sdf
+            return np.concatenate((id_arr, self.samples)), self.sdf
         else:
             pt = torch.from_numpy(self.samples[:, idx]).to(torch.float)
             sdf = torch.Tensor([self.sdf[idx]]).to(torch.float)
-            return pt, sdf
+            shape_id = torch.Tensor([self.id])
+            # return pt, sdf
+            return torch.cat((shape_id, pt)), sdf

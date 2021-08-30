@@ -57,58 +57,60 @@ if __name__ == "__main__":
     # sdf value at these 2d points 
     sdf_train = np.float_(list(map(circle.sdf, points_train)))
     # visualize the 2d points with sdf values
-    plot_sdf_using_opencv(circle.sdf, device=None, filename='circle.png', lat_vec=None)
+    plot_sdf_using_opencv(circle.sdf, device=None, filename='circle.png')
     # plt.scatter(points_train[:,0], points_train[:,1], color=(1, 1, 1, 0), edgecolor="#000000")
 
-    # ## now we make the dataset and dataloader for training
-    # train_ds = TensorDataset(torch.Tensor(points_train), torch.Tensor(sdf_train))
-    # train_dl = DataLoader(train_ds, shuffle=True, batch_size=len(train_ds))
-    
-    # I replace the above dataloader with the following one, using the customized dataset CircleSample
-    dataset = CircleSample(center_x=0,center_y=0,radius=2)
-    batch_size = int(1e4)
-    dataloader = data_utils.DataLoader(
-        dataset,
-        batch_size=int(1e4),
-        shuffle=True,
-        drop_last=False,
-    )
-
-    # define rectangle
-    # v = np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]])
-    # rectangle = Polygon(v)
-    # points_train = np.float_([[x_, y_]
-    #                 for y_ in np.linspace(-3, 3, 40)
-    #                 for x_ in np.linspace(-3, 3, 40)])
-    # sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
-    # plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
-
-    # define triangle 
-    # v = np.float_([[0, -2], [0, 2], [2, 0]])
-    # triangle = Polygon(v)
-    # points_train = np.float_([[x_, y_]
-    #                 for y_ in np.linspace(-3, 3, 40)
-    #                 for x_ in np.linspace(-3, 3, 40)])
-    # sdf_train = np.float_(list(map(triangle.sdf, points_train)))
-    # plot_sdf_using_opencv(triangle.sdf, device=None, filename='triangle.png')
-
-    # define pentagon 
-    # v = np.float_([[-2, 1], [0, -2], [0, 2], [-2, -1], [2, 0]])
-    # v = np.float_([[0, 2], [2, 0], [0, -2], [-2, -1], [-2, 1]])
-    # triangle = Polygon(v)
-    # points_train = np.float_([[x_, y_]
-    #                 for y_ in np.linspace(-3, 3, 40)
-    #                 for x_ in np.linspace(-3, 3, 40)])
-    # sdf_train = np.float_(list(map(triangle.sdf, points_train)))
-    # plot_sdf_using_opencv(triangle.sdf, device=None, filename='pentagon1.png')
-
-    # dataset = PolygonSample(v=v)
+    dataset_circle = CircleSample(center_x=0,center_y=0,radius=2, id=0)
     # dataloader = data_utils.DataLoader(
     #     dataset,
     #     batch_size=int(1e4),
     #     shuffle=True,
     #     drop_last=False,
     # )
+
+    # define rectangle1
+    v_rec = np.float_([[-1, -1], [-1, 1], [2, 1], [2, -1]])
+    rectangle = Polygon(v_rec)
+    points_train = np.float_([[x_, y_]
+                    for y_ in np.linspace(-3, 3, 40)
+                    for x_ in np.linspace(-3, 3, 40)])
+    sdf_train = np.float_(list(map(rectangle.sdf, points_train)))
+    plot_sdf_using_opencv(rectangle.sdf, device=None, filename='rectangle.png')
+
+    dataset_rec = PolygonSample(v=v_rec, id=1)
+    
+
+    # define triangle 
+    v_tri = np.float_([[0, -2], [0, 2], [2, 0]])
+    triangle = Polygon(v_tri)
+    points_train = np.float_([[x_, y_]
+                    for y_ in np.linspace(-3, 3, 40)
+                    for x_ in np.linspace(-3, 3, 40)])
+    sdf_train = np.float_(list(map(triangle.sdf, points_train)))
+    plot_sdf_using_opencv(triangle.sdf, device=None, filename='triangle.png')
+
+    dataset_tri = PolygonSample(v=v_tri, id=2)
+
+    # define pentagon 
+    v_pent = np.float_([[0, 2], [2, 0], [0, -2], [-2, -1], [-2, 1]])
+    pentagon = Polygon(v_pent)
+    points_train = np.float_([[x_, y_]
+                    for y_ in np.linspace(-3, 3, 40)
+                    for x_ in np.linspace(-3, 3, 40)])
+    sdf_train = np.float_(list(map(pentagon.sdf, points_train)))
+    plot_sdf_using_opencv(pentagon.sdf, device=None, filename='pentagon.png')
+
+    dataset_pent = PolygonSample(v=v_pent, id=3)
+
+    all_datasets = torch.utils.data.ConcatDataset([dataset_circle, dataset_rec, dataset_tri, dataset_pent])
+
+    batch_size = int(1e4)
+    dataloader = data_utils.DataLoader(
+        all_datasets,
+        batch_size=int(1e4),
+        shuffle=True,
+        drop_last=False,
+    )
 
 
     ## use cuda or not?
@@ -141,18 +143,19 @@ if __name__ == "__main__":
         net.train() # set network to the train mode
         total_loss = 0 
         for points_b, sdfs_b in dataloader:
-            if (len(points_b.shape) == 2):
-                input = torch.cat([lat_vec_repeat, points_b], dim=-1)
-            elif (len(points_b.shape) == 1):
-                input = torch.cat([lat_vec, points_b], dim=0)
-            else:
-                raise NotImplementedError
+            # if (len(points_b.shape) == 2):
+            #     input = torch.cat([lat_vec_repeat, points_b], dim=-1)
+            # elif (len(points_b.shape) == 1):
+            #     input = torch.cat([lat_vec, points_b], dim=0)
+            # else:
+            #     raise NotImplementedError
 
             # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)
+            
             if use_cuda:
-                input = input.to(device)
+                points_b = points_b.to(device)
                 sdfs_b = sdfs_b.to(device)
-            pred = net(input)
+            pred = net(points_b)
             # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
             """
             """
@@ -180,27 +183,40 @@ if __name__ == "__main__":
         
         if (epoch == 0 or ((epoch + 1) % 100 == 0)):
             filename = os.path.join(res_dir, "res_"+str(epoch)+".png")
-            plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True, lat_vec=lat_vec)
+            train_name = "res_"+str(epoch)+".png"
+            # lat_vecs = net.get_lat_vecs
+
+            # plot circle
+            plot_sdf_using_opencv(net.forward, device=device, id=0, filename=os.path.join(res_dir, "0_"+train_name), is_net=True)
+
+            # plot rectangle
+            plot_sdf_using_opencv(net.forward, device=device, id=1, filename=os.path.join(res_dir, "1_"+train_name), is_net=True)
+
+            # plot triangle
+            plot_sdf_using_opencv(net.forward, device=device, id=2, filename=os.path.join(res_dir, "2_"+train_name), is_net=True)
+
+            # plot pentagon
+            plot_sdf_using_opencv(net.forward, device=device, id=3, filename=os.path.join(res_dir, "3_"+train_name), is_net=True)
 
         test_total_loss = 0
         # set to evaluation mode
         net.eval()
         with torch.no_grad():
             for points_b, sdfs_b in dataloader:
-                if (len(points_b.shape) == 2):
-                    # lat_vec = lat_vec.repeat(points_b.shape[0], 1)
-                    input = torch.cat([lat_vec_repeat, points_b], dim=-1)
-                elif (len(points_b.shape) == 1):
-                    input = torch.cat([lat_vec, points_b], dim=0)
-                else:
-                    raise NotImplementedError
+                # if (len(points_b.shape) == 2):
+                #     # lat_vec = lat_vec.repeat(points_b.shape[0], 1)
+                #     input = torch.cat([lat_vec_repeat, points_b], dim=-1)
+                # elif (len(points_b.shape) == 1):
+                #     input = torch.cat([lat_vec, points_b], dim=0)
+                # else:
+                #     raise NotImplementedError
 
             #input = torch.cat([lat_vec, points_b], dim=0)
             # send points_b (a batch of points) to network; this is equivalent to net.forward(points_b)
                 if use_cuda:
-                    input = input.to(device)
+                    points_b = points_b.to(device)
                     sdfs_b = sdfs_b.to(device)
-                pred = net(input)
+                pred = net(points_b)
                 # reshape the pred; you need to check this torch function -- torch.squeeze() -- out
                 # pred = pred.squeeze()
                 #sdfs_b = sdfs_b.squeeze()
@@ -214,7 +230,20 @@ if __name__ == "__main__":
 
         if (epoch == 0 or ((epoch + 1) % 100 == 0)):
             filename = os.path.join(res_dir, "test_res_"+str(epoch)+".png")
-            plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True, lat_vec=lat_vec)
+            test_name = "test_res_"+str(epoch)+".png"
+            # plot_sdf_using_opencv(net.forward, device=device, filename=filename, is_net=True)
+
+            # plot circle
+            plot_sdf_using_opencv(net.forward, device=device, id=0, filename=os.path.join(res_dir, "0_"+test_name), is_net=True)
+
+            # plot rectangle
+            plot_sdf_using_opencv(net.forward, device=device, id=1, filename=os.path.join(res_dir, "1_"+test_name), is_net=True)
+
+            # plot triangle
+            plot_sdf_using_opencv(net.forward, device=device, id=2, filename=os.path.join(res_dir, "2_"+test_name), is_net=True)
+
+            # plot pentagon
+            plot_sdf_using_opencv(net.forward, device=device, id=3, filename=os.path.join(res_dir, "3_"+test_name), is_net=True)
         
         writer.add_scalar('Loss/Train', total_loss.item(), epoch)
         writer.add_scalar('Loss/Test', test_total_loss.item(), epoch)
